@@ -1,0 +1,6 @@
+{
+  "name": "AetherOS - Executive Concierge Launcher",
+  "description": "An operating concierge launcher for Pixel 10 Pro with continuous micro-state intelligence, 3D holographic orbital unlock briefing, and unified Tasks, Files, Tools, and People anchors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

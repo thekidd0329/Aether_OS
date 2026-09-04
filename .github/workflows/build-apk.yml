@@ -1,0 +1,64 @@
+name: Build Real AetherOS APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build production web bundle
+        run: npm run build
+
+      - name: Sync Capacitor Android platform
+        run: npx cap sync android
+
+      - name: Build Android APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+          
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+          mkdir -p ../artifacts
+          cp "$APK" ../artifacts/AetherOS-Executive-Launcher.apk
+          ls -lh ../artifacts/AetherOS-Executive-Launcher.apk
+
+      - name: Upload Real AetherOS APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AetherOS-Executive-Launcher-APK
+          path: artifacts/AetherOS-Executive-Launcher.apk
+          if-no-files-found: error
+          retention-days: 30
