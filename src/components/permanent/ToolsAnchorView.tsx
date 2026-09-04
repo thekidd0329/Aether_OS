@@ -243,8 +243,12 @@ export const ToolsAnchorView: React.FC<ToolsAnchorViewProps> = ({
 
                   <button
                     onClick={() => {
-                      audioEngine.playBloomOpen();
-                      setActiveMiniApp(tool.id);
+                      audioEngine.playActionExecute();
+                      if (tool.isInteractiveMiniApp) {
+                        setActiveMiniApp(tool.id);
+                      } else {
+                        onLaunchTool(tool);
+                      }
                     }}
                     className="px-3 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/40 border border-sky-400/50 text-sky-200 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_10px_rgba(56,189,248,0.2)]"
                   >

@@ -1,4 +1,4 @@
-export type AnchorCategory = 'TASKS' | 'FILES' | 'TOOLS' | 'PEOPLE';
+export type AnchorCategory = 'CONCIERGE' | 'TASKS' | 'FILES' | 'TOOLS' | 'PEOPLE';
 
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
 

@@ -12,14 +12,16 @@ import { TasksAnchorView } from './TasksAnchorView';
 import { FilesAnchorView } from './FilesAnchorView';
 import { ToolsAnchorView } from './ToolsAnchorView';
 import { PeopleAnchorView } from './PeopleAnchorView';
+import { RealConciergeRelevanceRenderer } from '../ephemeral/RealConciergeRelevanceRenderer';
+import { SynthesizedRelevanceFeed, RawContextBundle } from '../../types/realContext';
 import { audioEngine } from '../../utils/audioEngine';
 import {
+  Sparkles,
   CheckSquare,
   FolderClosed,
   Wrench,
   Users,
   ChevronDown,
-  Sparkles,
   Command,
   Search,
   Bell,
@@ -33,6 +35,10 @@ interface PermanentConciergeProps {
   files: DigitalObject[];
   toolClusters: ToolCluster[];
   people: PersonProfile[];
+  relevanceFeed?: SynthesizedRelevanceFeed;
+  rawContext?: RawContextBundle;
+  onRefreshRelevance?: () => void;
+  isRefreshingRelevance?: boolean;
   onSelectAnchor: (anchor: AnchorCategory) => void;
   onPullDownBriefing: () => void;
   onToggleTask: (taskId: string) => void;
@@ -58,6 +64,10 @@ export const PermanentConcierge: React.FC<PermanentConciergeProps> = ({
   files,
   toolClusters,
   people,
+  relevanceFeed,
+  rawContext,
+  onRefreshRelevance,
+  isRefreshingRelevance = false,
   onSelectAnchor,
   onPullDownBriefing,
   onToggleTask,
@@ -107,6 +117,7 @@ export const PermanentConcierge: React.FC<PermanentConciergeProps> = ({
   };
 
   const anchors: { key: AnchorCategory; label: string; icon: any; count: number }[] = [
+    { key: 'CONCIERGE', label: 'Concierge', icon: Sparkles, count: relevanceFeed ? relevanceFeed.now.length : 0 },
     { key: 'TASKS', label: 'Tasks', icon: CheckSquare, count: tasks.filter((t) => !t.completed).length },
     { key: 'FILES', label: 'Files', icon: FolderClosed, count: files.length },
     { key: 'TOOLS', label: 'Tools', icon: Wrench, count: 182 },
@@ -199,6 +210,15 @@ export const PermanentConcierge: React.FC<PermanentConciergeProps> = ({
 
       {/* 2. Main Active Anchor Viewport */}
       <div className="relative z-10 flex-1 overflow-hidden">
+        {activeAnchor === 'CONCIERGE' && relevanceFeed && rawContext && (
+          <RealConciergeRelevanceRenderer
+            feed={relevanceFeed}
+            rawContext={rawContext}
+            onRefresh={onRefreshRelevance || (() => {})}
+            isRefreshing={isRefreshingRelevance}
+          />
+        )}
+
         {activeAnchor === 'TASKS' && (
           <TasksAnchorView
             tasks={tasks}
@@ -231,9 +251,9 @@ export const PermanentConcierge: React.FC<PermanentConciergeProps> = ({
         )}
       </div>
 
-      {/* 3. The 4 Permanent Anchor Pillars Navigation Dock */}
-      <div className="relative z-10 px-4 py-2.5 border-t border-sky-500/20 bg-slate-950/90 backdrop-blur-xl">
-        <div className="grid grid-cols-4 gap-1.5">
+      {/* 3. The Permanent Anchor Pillars Navigation Dock */}
+      <div className="relative z-10 px-2 py-2 border-t border-sky-500/20 bg-slate-950/90 backdrop-blur-xl">
+        <div className="grid grid-cols-5 gap-1">
           {anchors.map((item) => {
             const isActive = activeAnchor === item.key;
             const Icon = item.icon;

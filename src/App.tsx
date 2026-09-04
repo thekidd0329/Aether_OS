@@ -33,6 +33,10 @@ import { PermissionsAuditBroker } from './components/system/PermissionsAuditBrok
 import { CyberDeveloperHudOverlay } from './components/effects/CyberDeveloperHudOverlay';
 import { ApkPackagingModal } from './components/system/ApkPackagingModal';
 
+import { collectRawContext } from './services/deviceContextCollector';
+import { synthesizeContextWithGemini, buildLocalHeuristicRelevance } from './services/relevanceSynthesizer';
+import { RawContextBundle, SynthesizedRelevanceFeed } from './types/realContext';
+
 const STORAGE_KEY_TASKS = 'aether_os_tasks_v1';
 const STORAGE_KEY_FILES = 'aether_os_files_v1';
 const STORAGE_KEY_PEOPLE = 'aether_os_people_v1';
@@ -40,9 +44,9 @@ const STORAGE_KEY_PEOPLE = 'aether_os_people_v1';
 export default function App() {
   // Runtime State
   const [isLocked, setIsLocked] = useState<boolean>(false);
-  const [isEphemeralBriefing, setIsEphemeralBriefing] = useState<boolean>(true);
+  const [isEphemeralBriefing, setIsEphemeralBriefing] = useState<boolean>(false);
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('evening');
-  const [activeAnchor, setActiveAnchor] = useState<AnchorCategory>('TASKS');
+  const [activeAnchor, setActiveAnchor] = useState<AnchorCategory>('CONCIERGE');
   const [isSignalsInspectorOpen, setIsSignalsInspectorOpen] = useState<boolean>(false);
   const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState<boolean>(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState<boolean>(false);
@@ -93,6 +97,31 @@ export default function App() {
     } catch {}
     return INITIAL_PEOPLE;
   });
+
+  // Real Android Context & AICore Synthesis State
+  const [rawContext, setRawContext] = useState<RawContextBundle | null>(null);
+  const [relevanceFeed, setRelevanceFeed] = useState<SynthesizedRelevanceFeed | null>(null);
+  const [isSynthesizing, setIsSynthesizing] = useState<boolean>(false);
+
+  const fetchAndSynthesizeRelevance = async () => {
+    try {
+      setIsSynthesizing(true);
+      const raw = await collectRawContext();
+      setRawContext(raw);
+      const feed = await synthesizeContextWithGemini(raw, tasks);
+      setRelevanceFeed(feed);
+    } catch (err) {
+      console.warn('Relevance synthesis error:', err);
+    } finally {
+      setIsSynthesizing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAndSynthesizeRelevance();
+    const interval = setInterval(fetchAndSynthesizeRelevance, 30000); // 30s background scan
+    return () => clearInterval(interval);
+  }, [tasks]);
 
   // Persist modifications
   useEffect(() => {
@@ -330,7 +359,7 @@ export default function App() {
           onSwipeDownQuickSettings={handleOpenQuickSettings}
         />
       ) : (
-        /* 3. PERMANENT LAYER: TASKS · FILES · TOOLS · PEOPLE */
+        /* 3. PERMANENT LAYER: TASKS · FILES · TOOLS · PEOPLE · CONCIERGE */
         <PermanentConcierge
           activeAnchor={activeAnchor}
           context={context}
@@ -338,6 +367,10 @@ export default function App() {
           files={files}
           toolClusters={INITIAL_TOOL_CLUSTERS}
           people={people}
+          relevanceFeed={relevanceFeed || undefined}
+          rawContext={rawContext || undefined}
+          onRefreshRelevance={fetchAndSynthesizeRelevance}
+          isRefreshingRelevance={isSynthesizing}
           onSelectAnchor={setActiveAnchor}
           onPullDownBriefing={handlePullDownBriefing}
           onToggleTask={handleToggleTask}
